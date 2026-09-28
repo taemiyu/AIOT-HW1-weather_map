@@ -1,0 +1,11 @@
+.venv
+.env
+.env.*
+.agent
+.claude
+.github
+data
+docs
+tools
+src/verify_gate*.py
+requirements-etl.txt

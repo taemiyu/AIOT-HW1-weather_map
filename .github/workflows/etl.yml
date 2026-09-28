@@ -1,0 +1,82 @@
+# Hourly ETL: CWA Open Data API → SQLite, published to the `data` branch.
+# The Vercel app downloads data/weather.db from that branch (WEATHER_DB_URL).
+# The branch is force-pushed as a single commit so the repo does not grow.
+name: CWA ETL
+
+on:
+  schedule:
+    - cron: "7 * * * *"   # every hour at :07 (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cwa-etl
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-etl.txt
+
+      - name: Install ETL dependencies
+        run: pip install -r requirements-etl.txt
+
+      - name: Restore previous database from the data branch
+        run: |
+          mkdir -p data
+          if git fetch --depth=1 origin data 2>/dev/null; then
+            git show origin/data:weather.db > data/weather.db
+            echo "restored $(stat -c %s data/weather.db) bytes"
+          else
+            echo "no data branch yet; starting a new database"
+          fi
+
+      - name: Run ETL (CWA API → SQLite)
+        env:
+          CWA_API_KEY: ${{ secrets.CWA_API_KEY }}
+        # A single failing dataset should not block publishing the others;
+        # the next step decides whether the database is good enough.
+        run: python src/etl.py || echo "::warning::some datasets failed, see log above"
+
+      - name: Verify database
+        run: |
+          python - <<'EOF'
+          import sqlite3, sys
+          from datetime import datetime, timedelta, timezone
+          c = sqlite3.connect("data/weather.db")
+          n = c.execute("SELECT COUNT(*) FROM latest_observations").fetchone()[0]
+          latest = c.execute("SELECT MAX(obs_time) FROM observations").fetchone()[0]
+          rain = c.execute("SELECT COUNT(*) FROM latest_rain").fetchone()[0]
+          age = datetime.now(timezone.utc) - datetime.fromisoformat(latest)
+          print(f"stations={n} rain_gauges={rain} latest_obs={latest} age={age}")
+          if n < 300 or age > timedelta(hours=3):
+              sys.exit("database looks incomplete or stale; not publishing")
+          EOF
+
+      - name: Publish to the data branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          out=$(mktemp -d)
+          cp data/weather.db "$out/"
+          cd "$out"
+          # Pushes to this branch must not create Vercel deployments.
+          echo '{"git":{"deploymentEnabled":false}}' > vercel.json
+          printf '# data branch\n\nSQLite database published hourly by the CWA ETL workflow. Do not edit.\n' > README.md
+          git init -q -b data
+          git add weather.db vercel.json README.md
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "data: CWA snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+          echo "published $(stat -c %s weather.db) bytes to data branch"

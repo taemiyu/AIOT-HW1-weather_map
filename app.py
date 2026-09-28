@@ -8,21 +8,52 @@ Run: python app.py  →  http://127.0.0.1:5001
 """
 import os
 import sys
+import tempfile
+import threading
+import time
+import urllib.request
 from pathlib import Path
 
 from flask import Flask, Response, abort, jsonify, send_from_directory
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
+import cwa_api  # noqa: E402
 import database  # noqa: E402
-import etl  # noqa: E402
 
 app = Flask(__name__, static_folder=str(ROOT / "static"), static_url_path="/static")
 app.json.ensure_ascii = False
 
 
+# On Vercel the filesystem is read-only except /tmp, and the ETL runs in GitHub
+# Actions, which publishes the SQLite file to the repo's `data` branch. When
+# WEATHER_DB_URL is set, that file is downloaded to /tmp and re-fetched after
+# DB_MAX_AGE seconds; locally the ETL-written data/weather.db is used directly.
+DB_URL = os.environ.get("WEATHER_DB_URL", "")
+DB_MAX_AGE = int(os.environ.get("DB_MAX_AGE", "600"))
+REMOTE_DB = Path(tempfile.gettempdir()) / "weather.db"
+_db_lock = threading.Lock()
+
+
+def db_path() -> Path:
+    if not DB_URL:
+        return database.DB_PATH
+    with _db_lock:
+        fresh = REMOTE_DB.exists() and time.time() - REMOTE_DB.stat().st_mtime < DB_MAX_AGE
+        if not fresh:
+            try:
+                tmp = REMOTE_DB.with_suffix(".download")
+                with urllib.request.urlopen(DB_URL, timeout=20, context=cwa_api.make_ssl_context()) as resp:
+                    tmp.write_bytes(resp.read())
+                os.replace(tmp, REMOTE_DB)  # atomic swap
+            except Exception:
+                if not REMOTE_DB.exists():
+                    raise  # nothing cached to fall back on
+    return REMOTE_DB
+
+
 def rows(sql: str, *args) -> list[dict]:
-    with database.connect() as conn:
+    with database.connect(db_path()) as conn:
         return [dict(r) for r in conn.execute(sql, args).fetchall()]
 
 
@@ -83,11 +114,13 @@ def radar_image(obs_time: str):
 def meta():
     last = rows("""SELECT dataset, MAX(fetched_at) AS fetched_at FROM fetch_log GROUP BY dataset""")
     return jsonify({"last_fetch": {r["dataset"]: r["fetched_at"] for r in last},
-                    "refresh_enabled": refresh_enabled()})
+                    "refresh_enabled": refresh_enabled(),
+                    "db_source": "remote" if DB_URL else "local"})
 
 
 def refresh_enabled() -> bool:
-    return os.environ.get("ALLOW_REFRESH", "1") == "1"
+    # A serverless deployment reading a published DB cannot persist an ETL run.
+    return os.environ.get("ALLOW_REFRESH", "0" if DB_URL else "1") == "1"
 
 
 @app.post("/api/refresh")
@@ -95,6 +128,8 @@ def refresh():
     """Run the ETL (CWA → DB). The map then re-reads from the DB."""
     if not refresh_enabled():
         abort(403)
+    import etl  # needs the ETL extras (numpy/pillow), which the web runtime omits
+
     results = etl.run_all()
     return jsonify({k: {x: v for x, v in r.items() if x != "reasons"} for k, r in results.items()})
 

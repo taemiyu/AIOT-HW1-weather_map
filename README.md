@@ -68,6 +68,25 @@ cp .env.example .env          # 填入自己的 CWA_API_KEY
 
 CWA API 金鑰可於 [氣象資料開放平臺](https://opendata.cwa.gov.tw/) 註冊後取得。
 
+## 雲端部署（GitHub Actions + Vercel）
+
+```
+GitHub Actions（每小時 :07）          Vercel（Flask serverless）
+  src/etl.py  CWA API → SQLite          app.py
+  驗證 → 強制推送到 `data` 分支  ──►   從 WEATHER_DB_URL 下載 weather.db 到 /tmp
+  （單一 commit，repo 不會變大）        每 10 分鐘重新讀取最新版本
+```
+
+- Vercel 上的 SQLite 只供讀取（serverless 檔案系統非永久），寫入只發生在 GitHub Actions 的 ETL。
+- `data` 分支只保留最新一份資料庫；ETL 保留最近 24 小時的觀測與 12 張雷達圖。
+- `main` 分支 push 會觸發 Vercel 自動部署；`data` 分支已停用部署（`vercel.json`）。
+
+| 設定位置 | 名稱 | 值 |
+|---|---|---|
+| GitHub → Settings → Secrets and variables → Actions | `CWA_API_KEY` | 你的 CWA 授權碼 |
+| Vercel → Project → Settings → Environment Variables | `WEATHER_DB_URL` | `https://raw.githubusercontent.com/taemiyu/AIOT-HW1-weather_map/data/weather.db` |
+| Vercel（選用） | `DB_MAX_AGE` | 重新下載資料庫的間隔秒數，預設 `600` |
+
 ## 驗證（五 Gate 流程）
 
 依 [.agent/workflows/project_workflow.md](.agent/workflows/project_workflow.md) 嚴格依序執行，每個 Gate 的實際執行紀錄在 [docs/verification/](docs/verification/)。
@@ -84,7 +103,7 @@ CWA API 金鑰可於 [氣象資料開放平臺](https://opendata.cwa.gov.tw/) �
 
 - API 金鑰只存在 `.env`（已列入 `.gitignore`），程式輸出只顯示末四碼。
 - 請求失敗時的錯誤訊息只包含 URL 路徑，不包含帶有金鑰的查詢字串。
-- `data/`（資料庫與原始回應）不進入 Git。
+- `data/`（資料庫與原始回應）不進入 `main`；GitHub Actions 以 repository secret 讀取金鑰，並只把資料庫推到 `data` 分支。
 - TLS 驗證全程開啟；僅因 CWA 憑證缺少 Subject Key Identifier，而關閉 Python 3.13 的 `VERIFY_X509_STRICT` 旗標（憑證鏈與主機名稱仍完整驗證）。
 
 ## 資料來源與授權

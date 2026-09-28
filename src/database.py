@@ -4,12 +4,13 @@ Duplicate strategy: one observation row per (station_id, obs_time). Re-fetching
 the same observation hour updates that row instead of inserting a duplicate.
 Station metadata lives in its own table and is upserted by station_id.
 """
+import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = PROJECT_ROOT / "data" / "weather.db"
+DB_PATH = Path(os.environ.get("WEATHER_DB_PATH", PROJECT_ROOT / "data" / "weather.db"))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS stations (
@@ -377,3 +378,28 @@ def upsert_radar(conn: sqlite3.Connection, frame: dict, image: bytes, dataset: s
                  "rejected": 0, "reasons": []}
         _log(conn, now, dataset, stats)
     return stats
+
+
+def prune(conn: sqlite3.Connection, keep_hours: int = 24) -> dict:
+    """Drop observations older than keep_hours before the newest one, and stale typhoons.
+
+    Keeps the database small enough to publish on every ETL run.
+    """
+    removed = {}
+    with conn:
+        for table in ("observations", "rain_observations"):
+            newest = conn.execute(f"SELECT MAX(obs_time) FROM {table}").fetchone()[0]
+            if not newest:
+                continue
+            cutoff = (datetime.fromisoformat(newest) - timedelta(hours=keep_hours)).isoformat()
+            removed[table] = conn.execute(f"DELETE FROM {table} WHERE obs_time < ?", (cutoff,)).rowcount
+        week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat(timespec="seconds")
+        stale = [r[0] for r in conn.execute(
+            "SELECT typhoon_key FROM typhoons WHERE active = 0 AND updated_at < ?", (week_ago,))]
+        for key in stale:
+            conn.execute("DELETE FROM typhoon_points WHERE typhoon_key = ?", (key,))
+            conn.execute("DELETE FROM typhoons WHERE typhoon_key = ?", (key,))
+        removed["typhoons"] = len(stale)
+        conn.execute("DELETE FROM fetch_log WHERE id NOT IN (SELECT id FROM fetch_log ORDER BY id DESC LIMIT 500)")
+    conn.execute("VACUUM")
+    return removed

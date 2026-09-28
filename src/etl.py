@@ -68,7 +68,10 @@ def run_all(names: list[str] | None = None) -> dict:
 
 if __name__ == "__main__":
     ok = True
-    for name, stats in run_all(sys.argv[1:] or None).items():
+    results = run_all(sys.argv[1:] or None)
+    with database.connect() as conn:
+        print(f"[prune] removed {database.prune(conn)}")
+    for name, stats in results.items():
         if "error" in stats:
             ok = False
             print(f"[{name}] ERROR {stats['error']}")

@@ -2,6 +2,8 @@
 
 🌐 **線上版：https://aiot-hw-1-weather-map.vercel.app**
 
+![台灣即時天氣 GIS：氣溫圖層，苗栗縣篩選與氣溫數字標籤](docs/images/screenshot.webp)
+
 AIoT L3 CWA HW1 — 以中央氣象署（CWA）開放資料建立的台灣即時天氣地理資訊系統。
 資料流：**CWA Open Data API → SQLite → Flask API → Leaflet 互動地圖**。所有天氣數值皆來自資料庫，不使用任何模擬資料。
 

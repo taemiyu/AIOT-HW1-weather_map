@@ -1,5 +1,7 @@
 # 台灣即時天氣 GIS · Taiwan Live Weather GIS
 
+🌐 **線上版：https://aiot-hw-1-weather-map.vercel.app**
+
 AIoT L3 CWA HW1 — 以中央氣象署（CWA）開放資料建立的台灣即時天氣地理資訊系統。
 資料流：**CWA Open Data API → SQLite → Flask API → Leaflet 互動地圖**。所有天氣數值皆來自資料庫，不使用任何模擬資料。
 
@@ -97,7 +99,9 @@ GitHub Actions（每小時 :07）          Vercel（Flask serverless）
 | 2 Database | ETL → SQLite、去重、驗證、SQL 查詢 | `python src/verify_gate2.py` | ✅ PASS |
 | 3 Local GIS | 3A–3G 地圖、標記、彈出視窗、GeoJSON、儀表板 | `python src/verify_gate3.py` | ✅ PASS |
 | 4 GitHub | repo 整理、README、requirements、秘密檢查 | 見下方安全設定 | ✅ PASS |
-| 5 Vercel | 部署與自動部署 | — | ⏳ |
+| 5 Vercel | 公開網址、GitHub Actions ETL、push 自動部署 | [gate5_run.txt](docs/verification/gate5_run.txt) | ✅ PASS |
+
+**DIC-2 / AIoT L3 CWA HW1 = COMPLETE**
 
 ## 安全設定
 

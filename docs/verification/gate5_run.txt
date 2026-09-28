@@ -1,0 +1,32 @@
+Gate 5 — Vercel verification (2026-09-28T15:23Z)
+Public URL: https://aiot-hw-1-weather-map.vercel.app
+
+== Endpoints ==
+200 3505B /
+200 41778B /static/app.js
+200 15278B /static/i18n.js
+200 10837B /static/style.css
+200 530441B /static/data/taiwan_counties.geojson
+200 230B /api/meta
+200 126408B /api/observations
+200 321804B /api/rain
+200 7623B /api/typhoons
+200 205B /api/radar
+
+== Data source (DB on data branch, written by GitHub Actions ETL) ==
+{"db_source":"remote","last_fetch":{"O-A0002-001":"2026-09-28T15:11:13+00:00","O-A0003-001":"2026-09-28T15:10:59+00:00","O-A0058-003":"2026-09-28T15:11:22+00:00","W-C0034-005":"2026-09-28T15:11:17+00:00"},"refresh_enabled":false}
+
+observations=363 obs_time=2026-09-28T22:50:00+08:00 臺中 T=27.7 晴
+rain gauges=1339 obs_time=2026-09-28T23:00:00+08:00
+typhoons= ['舒力基']
+POST /api/refresh (disabled on Vercel): 403
+
+== Git branches ==
+5213df48eb995ac43e5343e28bd76834ab2870cc	HEAD
+c5a1d61c87cca84638ac458f4e06a383418c00dd	refs/heads/data
+5213df48eb995ac43e5343e28bd76834ab2870cc	refs/heads/main
+
+== Auto deployment test ==
+Pushed 5213df4 (.vercelignore fix) at 15:22:53Z; before: county GeoJSON 404, after: 200 at 15:23:25Z without manual deploy.
+
+GATE 5 = PASS

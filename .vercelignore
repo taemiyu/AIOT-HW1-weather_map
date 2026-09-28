@@ -4,8 +4,8 @@
 .agent
 .claude
 .github
-data
-docs
-tools
+/data
+/docs
+/tools
 src/verify_gate*.py
 requirements-etl.txt

@@ -193,6 +193,20 @@ select.full, input[type="search"] { width: 100%; }
 :root[data-theme="dark"] .temp-label { color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 2px #000; }
 .temp-label:before { display: none; }
 
+/* Selected-county spotlight */
+.county-mask.animate { animation: county-fade .35s ease-out; }
+.county-hl.animate { animation: county-pulse 1.1s ease-out 2; }
+@keyframes county-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes county-pulse {
+  0% { stroke-width: 3.5px; }
+  35% { stroke-width: 9px; stroke-opacity: .55; }
+  100% { stroke-width: 3.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .county-mask.animate, .county-hl.animate { animation: none; }
+}
+.clear-county { margin-left: 6px; padding: 1px 8px; font-size: 11px; vertical-align: middle; }
+
 .wx-icon { font-size: 18px; line-height: 1; text-align: center; filter: drop-shadow(0 0 1px rgba(0,0,0,.35)); }
 .wind-icon svg { overflow: visible; }
 

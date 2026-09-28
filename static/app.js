@@ -170,6 +170,14 @@ let meLayer = null;
 let markerIndex = new Map(); // station_id → marker for the active layer
 let radarState = { index: 0, timer: null, overlay: null };
 
+// Spotlight for the selected county: dims everything outside it and outlines it.
+// Its own SVG pane sits above the canvas markers (overlayPane) but below DOM markers.
+map.createPane("countyFocus");
+map.getPane("countyFocus").style.zIndex = 450;
+map.getPane("countyFocus").style.pointerEvents = "none";
+const focusRenderer = L.svg({ pane: "countyFocus", padding: 1 });
+let focusLayer = null;
+
 const legend = L.control({ position: "bottomright" });
 legend.onAdd = () => L.DomUtil.create("div", "legend");
 legend.addTo(map);
@@ -181,6 +189,7 @@ function setBase(id) {
   document.documentElement.dataset.theme = id === "dark" ? "dark" : "light";
   renderBaseList();
   if (countyLayer) countyLayer.setStyle(countyStyle);
+  renderCountyFocus(false);
   savePrefs();
 }
 
@@ -278,7 +287,7 @@ function windIcon(s) {
 function renderWind() {
   for (const s of data.obs.stations) {
     if (s.wind_speed == null) continue;
-    const m = L.marker([s.lat, s.lon], { icon: windIcon(s), keyboard: false })
+    const m = L.marker([s.lat, s.lon], { icon: windIcon(s), keyboard: false, opacity: inCounty(s) ? 1 : 0.3 })
       .bindPopup(() => obsPopup(s), { maxWidth: 300 }).addTo(dataLayer);
     markerIndex.set(s.station_id, m);
   }
@@ -288,7 +297,7 @@ function renderWeather() {
   for (const s of data.obs.stations) {
     const m = L.marker([s.lat, s.lon], {
       icon: L.divIcon({ className: "wx-icon", iconSize: [22, 22], html: wxEmoji(s.weather, s.obs_time) }),
-      keyboard: false,
+      keyboard: false, opacity: inCounty(s) ? 1 : 0.3,
     }).bindPopup(() => obsPopup(s), { maxWidth: 300 }).addTo(dataLayer);
     markerIndex.set(s.station_id, m);
   }
@@ -414,7 +423,8 @@ function renderLabels() {
   for (const s of data.obs.stations) {
     if (s.temperature == null || (!dense && !MAIN_STATION(s))) continue;
     if (!view.contains([s.lat, s.lon])) continue;
-    L.tooltip({ permanent: true, direction: "top", className: "temp-label", offset: [0, -6], interactive: false })
+    L.tooltip({ permanent: true, direction: "top", className: "temp-label", offset: [0, -6], interactive: false,
+      opacity: inCounty(s) ? 0.9 : 0.3 })
       .setLatLng([s.lat, s.lon]).setContent(`${Math.round(s.temperature)}°`).addTo(labelLayer);
   }
 }
@@ -455,16 +465,40 @@ let metricCache = null;
 function countyStyle(feature) {
   const dark = state.base === "dark";
   const name = feature.properties.name;
-  const selected = state.county === name;
   const v = metricCache && metricCache.avg[name];
   const fill = v != null ? metricCache.colorOf(v) : null;
   return {
-    color: selected ? "#1f6feb" : dark ? "#9aa3af" : "#4b5563",
-    weight: selected ? 3 : 1.2,
+    color: dark ? "#9aa3af" : "#4b5563",
+    weight: 1.2,
     opacity: 0.9,
     fillColor: fill || "transparent",
     fillOpacity: fill ? 0.16 : 0,
   };
+}
+
+function renderCountyFocus(animate = true) {
+  if (focusLayer) { map.removeLayer(focusLayer); focusLayer = null; }
+  const f = state.county && data.counties
+    && data.counties.features.find((x) => x.properties.name === state.county);
+  if (!f) return;
+  const dark = state.base === "dark";
+  const accent = dark ? "#4c8dff" : "#1f6feb";
+  const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+  const world = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+  const holes = polys.map((p) => p[0].map(([lon, lat]) => [lat, lon]));
+  const common = { renderer: focusRenderer, pane: "countyFocus", interactive: false };
+  focusLayer = L.layerGroup([
+    L.polygon([world, ...holes], {
+      ...common, stroke: false, fillRule: "evenodd",
+      fillColor: dark ? "#000000" : "#0f172a", fillOpacity: dark ? 0.55 : 0.38,
+      className: animate ? "county-mask animate" : "county-mask",
+    }),
+    L.geoJSON(f, { ...common, style: { color: accent, weight: 12, opacity: 0.25, fill: false } }),
+    L.geoJSON(f, {
+      ...common, style: { color: accent, weight: 3.5, opacity: 1, fill: false },
+      className: animate ? "county-hl animate" : "county-hl",
+    }),
+  ]).addTo(map);
 }
 
 function buildCountyLayer() {
@@ -561,7 +595,9 @@ function scopeLabel() {
 function renderPanel() {
   const el = document.getElementById("layerPanel");
   if (!data.obs) { el.innerHTML = ""; return; }
-  const title = `<h3>${LAYERS.find((l) => l.id === state.layer).ico} ${t("layer_" + state.layer)} · ${esc(scopeLabel())}</h3>`;
+  const clear = state.county
+    ? ` <button class="chip clear-county" data-clear-county aria-label="${esc(t("all_counties"))}">✕</button>` : "";
+  const title = `<h3>${LAYERS.find((l) => l.id === state.layer).ico} ${t("layer_" + state.layer)} · ${esc(scopeLabel())}${clear}</h3>`;
   const obs = data.obs.stations.filter(inCounty);
   let html = "";
 
@@ -629,6 +665,7 @@ function renderPanel() {
 }
 
 document.getElementById("layerPanel").addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-clear-county]")) { setCounty(""); return; }
   const period = ev.target.closest("[data-period]");
   if (period) { state.rainPeriod = period.dataset.period; savePrefs(); renderDataLayer(); applyOverlays(); return; }
   const st = ev.target.closest("[data-station]");
@@ -723,6 +760,9 @@ function setCounty(name) {
   state.county = state.county === name && name ? "" : name;
   document.getElementById("countySelect").value = state.county;
   if (countyLayer) countyLayer.setStyle(countyStyle);
+  renderCountyFocus();
+  renderDataLayer();
+  applyOverlays();
   if (state.county && countyLayer) {
     const layer = countyLayer.getLayers().find((l) => l.feature.properties.name === state.county);
     if (layer) map.fitBounds(layer.getBounds(), { padding: [20, 20] });
@@ -731,6 +771,10 @@ function setCounty(name) {
   }
   renderPanel();
 }
+
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && state.county && !ev.target.closest?.("input, select")) setCounty("");
+});
 
 // search across both station networks
 const searchInput = document.getElementById("searchInput");

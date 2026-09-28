@@ -44,8 +44,8 @@ CWA Open Data API
       ▼
    Flask API       app.py            /api/observations /api/rain /api/typhoons /api/radar
       ▼
-   Leaflet UI      static/           index.html · app.js · i18n.js · style.css
-                   static/data/taiwan_counties.geojson
+   Leaflet UI      public/           index.html · static/app.js · i18n.js · style.css
+                   public/static/data/taiwan_counties.geojson（Vercel 以 CDN 直接提供）
 ```
 
 ### 資料庫設計
@@ -84,6 +84,7 @@ GitHub Actions（每小時 :07）          Vercel（Flask serverless）
 - Vercel 上的 SQLite 只供讀取（serverless 檔案系統非永久），寫入只發生在 GitHub Actions 的 ETL。
 - `data` 分支只保留最新一份資料庫；ETL 保留最近 24 小時的觀測與 12 張雷達圖。
 - `main` 分支 push 會觸發 Vercel 自動部署；`data` 分支已停用部署（`vercel.json`）。
+- 前端檔案放在 `public/`，由 Vercel CDN 直接提供；API 回應在 CDN 快取 5 分鐘（`s-maxage=300`），資料每小時才更新一次。
 
 | 設定位置 | 名稱 | 值 |
 |---|---|---|

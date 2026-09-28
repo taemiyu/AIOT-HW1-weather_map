@@ -140,17 +140,18 @@ function haversineKm(a, b) {
 const data = { obs: null, rain: null, typhoons: null, radar: null, counties: null, meta: null };
 
 async function getJSON(url) {
-  const r = await fetch(url, { cache: "no-store" });
+  const r = await fetch(url);
   if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`);
   return r.json();
 }
 async function loadData() {
-  const [obs, rain, typhoons, radar, meta] = await Promise.all([
+  // County borders are static; fetch them alongside the API calls, not after.
+  const [obs, rain, typhoons, radar, meta, counties] = await Promise.all([
     getJSON("/api/observations"), getJSON("/api/rain"), getJSON("/api/typhoons"),
     getJSON("/api/radar"), getJSON("/api/meta"),
+    data.counties || getJSON("/static/data/taiwan_counties.geojson"),
   ]);
-  Object.assign(data, { obs, rain, typhoons, radar, meta });
-  if (!data.counties) data.counties = await getJSON("/static/data/taiwan_counties.geojson");
+  Object.assign(data, { obs, rain, typhoons, radar, meta, counties });
 }
 
 // ---------------------------------------------------------------- map

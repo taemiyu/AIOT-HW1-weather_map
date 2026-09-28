@@ -1,6 +1,6 @@
 """Convert taiwan-atlas county TopoJSON (MIT, Daniel Kao) into static GeoJSON.
 
-Usage: python tools/build_geojson.py <counties-10t.json> static/data/taiwan_counties.geojson
+Usage: python tools/build_geojson.py <counties-10t.json> public/static/data/taiwan_counties.geojson
 Source: https://cdn.jsdelivr.net/npm/taiwan-atlas@2021.9.20/counties-10t.json
 """
 import json

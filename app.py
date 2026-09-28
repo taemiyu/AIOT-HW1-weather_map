@@ -14,14 +14,17 @@ import time
 import urllib.request
 from pathlib import Path
 
-from flask import Flask, Response, abort, jsonify, send_from_directory
+from flask import Flask, Response, abort, jsonify, request, send_from_directory
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 import cwa_api  # noqa: E402
 import database  # noqa: E402
 
-app = Flask(__name__, static_folder=str(ROOT / "static"), static_url_path="/static")
+# Static assets live in public/ so Vercel serves them from its CDN; locally Flask
+# serves the same files at the same URLs.
+PUBLIC = ROOT / "public"
+app = Flask(__name__, static_folder=str(PUBLIC / "static"), static_url_path="/static")
 app.json.ensure_ascii = False
 
 
@@ -57,9 +60,20 @@ def rows(sql: str, *args) -> list[dict]:
         return [dict(r) for r in conn.execute(sql, args).fetchall()]
 
 
+# The ETL publishes hourly, so API responses may be cached briefly at Vercel's CDN.
+API_CACHE = "public, max-age=0, s-maxage=300, stale-while-revalidate=3600"
+
+
+@app.after_request
+def cache_headers(resp):
+    if request.path.startswith("/api/") and request.method == "GET" and resp.status_code == 200:
+        resp.headers.setdefault("Cache-Control", API_CACHE)
+    return resp
+
+
 @app.get("/")
 def index():
-    return send_from_directory(app.static_folder, "index.html")
+    return send_from_directory(PUBLIC, "index.html")
 
 
 @app.get("/api/observations")
@@ -107,7 +121,7 @@ def radar_image(obs_time: str):
     if not found:
         abort(404)
     return Response(found[0]["image"], mimetype="image/png",
-                    headers={"Cache-Control": "public, max-age=86400"})
+                    headers={"Cache-Control": "public, max-age=86400, s-maxage=86400, immutable"})
 
 
 @app.get("/api/meta")

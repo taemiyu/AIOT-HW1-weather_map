@@ -1,0 +1,55 @@
+== Run 1: ETL ==
+  total=363 inserted=363 updated=0 rejected=0
+== Run 2: ETL again (same observation hour) ==
+  total=363 inserted=0 updated=363 rejected=0
+
+[PASS] validate: out-of-range temperature → NULL
+[PASS] validate: coordinates outside Taiwan rejected
+[PASS] validate: missing obs_time rejected
+[PASS] stations stored = 363 (API returned 363, rejected 0)
+[PASS] latest_observations view covers every station (363)
+[PASS] no duplicate (station_id, obs_time) rows (0 found)
+[PASS] re-run produced no duplicates (updated or new hour only)
+
+== SQL: 臺中市 (specified region) ==
+  中竹林       太平區   2026-09-28T22:20:00+08:00  晴    T=23.4  Min=22.7  Max=33.1  RH=91.0
+  出雲        和平區   2026-09-28T22:20:00+08:00  晴    T=20.4  Min=17.4  Max=28.9  RH=67.0
+  國一N158K   后里區   2026-09-28T22:20:00+08:00  晴    T=25.3  Min=24.3  Max=33.2  RH=90.0
+  國一N174K   西屯區   2026-09-28T22:20:00+08:00  晴    T=27.3  Min=26.0  Max=33.0  RH=84.0
+  國一S162K   后里區   2026-09-28T22:20:00+08:00  晴    T=26.8  Min=25.5  Max=33.2  RH=78.0
+  國一S169K   神岡區   2026-09-28T22:20:00+08:00  晴    T=27.1  Min=25.5  Max=33.2  RH=83.0
+  國一S188K   大肚區   2026-09-28T22:20:00+08:00  晴    T=27.1  Min=25.3  Max=33.7  RH=79.0
+  國三N183K   龍井區   2026-09-28T22:20:00+08:00  晴    T=26.5  Min=25.0  Max=32.2  RH=82.0
+[PASS] 臺中市 rows present (8 shown)
+
+== SQL: multi-region summary ==
+  南投縣   n=40  avgT=20.5  low=5.1  high=34.8  2026-09-28T22:20:00+08:00
+  嘉義縣   n=33  avgT=23.5  low=10.5  high=34.9  2026-09-28T22:20:00+08:00
+  臺南市   n=31  avgT=25.4  low=21.4  high=35.8  2026-09-28T22:20:00+08:00
+  新北市   n=25  avgT=24.7  low=18.2  high=36.2  2026-09-28T22:20:00+08:00
+  苗栗縣   n=24  avgT=24.8  low=19.4  high=34.9  2026-09-28T22:20:00+08:00
+  雲林縣   n=24  avgT=25.5  low=17.0  high=35.6  2026-09-28T22:20:00+08:00
+  臺中市   n=23  avgT=24.1  low=10.2  high=34.6  2026-09-28T22:20:00+08:00
+  高雄市   n=21  avgT=25.3  low=20.9  high=35.7  2026-09-28T22:20:00+08:00
+  彰化縣   n=19  avgT=26.4  low=23.5  high=35.1  2026-09-28T22:20:00+08:00
+  屏東縣   n=18  avgT=25.7  low=18.0  high=35.8  2026-09-28T22:20:00+08:00
+  臺東縣   n=18  avgT=24.9  low=21.2  high=34.3  2026-09-28T22:20:00+08:00
+  新竹縣   n=17  avgT=24.0  low=17.5  high=35.0  2026-09-28T22:20:00+08:00
+  桃園市   n=17  avgT=25.9  low=17.5  high=35.8  2026-09-28T22:20:00+08:00
+  花蓮縣   n=12  avgT=22.5  low=7.1  high=35.0  2026-09-28T22:20:00+08:00
+  宜蘭縣   n=10  avgT=25.3  low=20.7  high=33.3  2026-09-28T22:20:00+08:00
+  臺北市   n=9   avgT=25.2  low=21.2  high=36.7  2026-09-28T22:20:00+08:00
+  基隆市   n=7   avgT=24.9  low=21.8  high=35.7  2026-09-28T22:20:00+08:00
+  嘉義市   n=4   avgT=25.4  low=22.6  high=34.5  2026-09-28T22:20:00+08:00
+  澎湖縣   n=4   avgT=26.6  low=25.3  high=31.9  2026-09-28T22:20:00+08:00
+  新竹市   n=3   avgT=25.8  low=22.1  high=33.2  2026-09-28T22:20:00+08:00
+  連江縣   n=2   avgT=27.3  low=26.6  high=30.2  2026-09-28T22:20:00+08:00
+  金門縣   n=2   avgT=27.5  low=26.4  high=32.8  2026-09-28T22:20:00+08:00
+[PASS] all 22 counties present in DB (22)
+
+== SQL: fetch_log ==
+  {'id': 12, 'fetched_at': '2026-09-28T14:32:18+00:00', 'dataset': 'O-A0003-001', 'total': 363, 'inserted': 0, 'updated': 363, 'rejected': 0}
+  {'id': 11, 'fetched_at': '2026-09-28T14:32:02+00:00', 'dataset': 'O-A0003-001', 'total': 363, 'inserted': 363, 'updated': 0, 'rejected': 0}
+  {'id': 10, 'fetched_at': '2026-09-28T14:30:44+00:00', 'dataset': 'O-A0058-003', 'total': 1, 'inserted': 1, 'updated': 0, 'rejected': 0}
+
+GATE 2 = PASS

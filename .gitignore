@@ -1,0 +1,15 @@
+# secrets
+.env
+.env.*
+!.env.example
+# data / runtime
+*.db
+*.sqlite
+data/raw/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+.vercel
+# local tooling
+.claude/

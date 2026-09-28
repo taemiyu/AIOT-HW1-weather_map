@@ -1,0 +1,4 @@
+# ETL job: CWA API → SQLite (includes radar image processing)
+-r requirements.txt
+numpy==2.5.3
+pillow==12.3.0

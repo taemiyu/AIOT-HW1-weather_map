@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>台灣即時天氣 GIS</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛅</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar" aria-label="Controls">
+      <header class="sb-head">
+        <div class="brand">
+          <h1 data-i18n="title">台灣即時天氣 GIS</h1>
+          <p class="muted" data-i18n="subtitle">中央氣象署開放資料</p>
+        </div>
+        <button id="closeSidebar" class="icon-btn only-mobile" data-i18n-aria="close" aria-label="關閉">✕</button>
+      </header>
+
+      <div class="sb-body">
+        <label class="lang-row">
+          <span data-i18n="language">語言</span>
+          <select id="langSelect"></select>
+        </label>
+
+        <section>
+          <h2 data-i18n="layers">圖層</h2>
+          <div id="layerList" class="layer-grid" role="radiogroup"></div>
+        </section>
+
+        <section id="layerPanel" class="panel" aria-live="polite"></section>
+
+        <section>
+          <h2 data-i18n="overlays">顯示</h2>
+          <label class="check"><input type="checkbox" id="ovStations"> <span>📍 <span data-i18n="ov_stations">測站點位</span></span></label>
+          <label class="check"><input type="checkbox" id="ovCounties"> <span>🗺️ <span data-i18n="ov_counties">縣市界線</span></span></label>
+          <label class="check"><input type="checkbox" id="ovLabels"> <span>🔢 <span data-i18n="ov_labels">氣溫數字標籤</span></span></label>
+        </section>
+
+        <section>
+          <h2 data-i18n="basemap">底圖</h2>
+          <div id="baseList" class="segmented" role="radiogroup"></div>
+        </section>
+
+        <section>
+          <h2 data-i18n="county">縣市</h2>
+          <select id="countySelect" class="full"></select>
+          <div class="search-wrap">
+            <input id="searchInput" type="search" autocomplete="off" data-i18n-ph="search" placeholder="搜尋測站…">
+            <ul id="searchResults" class="search-results" hidden></ul>
+          </div>
+        </section>
+
+        <button id="locateBtn" class="btn primary full">📌 <span data-i18n="locate">定位我的位置</span></button>
+
+        <footer class="sb-foot">
+          <div id="updatedInfo" class="muted small"></div>
+          <button id="refreshBtn" class="btn full small-btn" hidden>🔄 <span data-i18n="refresh">從氣象署更新資料</span></button>
+          <p class="muted small"><span data-i18n="source">資料來源</span>：<a href="https://opendata.cwa.gov.tw/" target="_blank" rel="noopener">CWA Open Data</a> · © OpenStreetMap · Esri</p>
+        </footer>
+      </div>
+    </aside>
+
+    <main id="mapWrap">
+      <div id="map"></div>
+      <button id="openSidebar" class="fab only-mobile" data-i18n-aria="menu" aria-label="選單">☰</button>
+      <div id="obsBadge" class="badge"></div>
+      <div id="toast" class="toast" role="status" hidden></div>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="/static/i18n.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

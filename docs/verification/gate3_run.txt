@@ -1,0 +1,21 @@
+[PASS] 3A index.html served with Leaflet
+[PASS] 3A asset /static/app.js
+[PASS] 3A asset /static/i18n.js
+[PASS] 3A asset /static/style.css
+[PASS] 3B/3C 臺中 marker data matches DB (T=27.8 晴 @ 2026-09-28T22:10:00+08:00)
+[PASS] 3D all stations served (363 API / 363 DB)
+[PASS] 3D all 22 counties represented (22)
+[PASS] 3E rain layer from DB (1339 gauges)
+[PASS] 3E typhoon layer from DB (1 active: 舒力基/SURIGAE)
+[PASS] 3E radar frames from DB (2)
+[PASS] 3E radar overlay is transparent PNG (1800, 1800) RGBA
+[PASS] 3F GeoJSON has 22 counties matching DB names
+[PASS] 3G layer switcher (7 layers)
+[PASS] 3G 3 basemaps
+[PASS] 3G geolocation
+[PASS] 3G county filter
+[PASS] 3G station search
+[PASS] 3G refresh via ETL
+[PASS] 3G languages zh-TW/en/ja/ko
+
+GATE 3 = PASS
